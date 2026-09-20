@@ -19,3 +19,5 @@ struct SourceLine{
 	std::vector<int> objectCode;
 };
 
+
+void parse();
