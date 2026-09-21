@@ -1,4 +1,6 @@
 #include <ncurses.h>
+#include <parser.hpp>
+#include <iostream>
 
 /* main.cpp
  * Cameron Peek
@@ -8,8 +10,13 @@
 
 WINDOW* win;
 
-int main(){
-	setupCurses();
+int main(int argc, char* argv[]){
+//	setupCurses();
+    if(argc < 2){
+        std::cerr << "no arguments :(((\n";
+        return 1;
+    }
+    readAsm(argv[1]);
 	return 0;
 }
 
