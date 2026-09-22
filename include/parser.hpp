@@ -29,5 +29,7 @@ struct SourceLine{
 };
 
 extern std::unordered_map<std::string, OpCode> optab;
+extern std::unordered_map<std::string, int> symtab;
+
 SourceLine parseLine(std::string line);
 int readAsm(std::string filename);
