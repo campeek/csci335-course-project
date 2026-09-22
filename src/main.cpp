@@ -1,12 +1,12 @@
-#include <ncurses.h>
-#include <parser.hpp>
-#include <iostream>
-
 /* main.cpp
  * Cameron Peek
  * 9/12/26
  *
  **/
+
+#include <ncurses.h>
+#include <iostream>
+#include "parser.hpp"
 
 WINDOW* win;
 

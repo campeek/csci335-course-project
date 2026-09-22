@@ -63,13 +63,15 @@ SourceLine parseLine(std::string line) {
     //TODO: deal with other directives
     if(mnem == "START"){
         if(start_addr == 0){
-            std::cout << "start op" << operand << "\n";
             start_addr = std::stoi(operand, nullptr, 16);
+            cur_addr = start_addr;
         } else {
             //TODO: handle error here
         }
     } else {
         opcode = optab[mnem];
+
+        thisLine.raw = line;
         thisLine.address = cur_addr;
         thisLine.label = label;
         thisLine.operand = operand;
@@ -79,8 +81,10 @@ SourceLine parseLine(std::string line) {
         if(hasLabel){
             symtab[label] = cur_addr;
         }
+
+        cur_addr += instruction_length;
     }
-    cur_addr += instruction_length;
+
 
 
     std::cout << "parsed line -> |";
@@ -94,26 +98,26 @@ SourceLine parseLine(std::string line) {
     return thisLine; 
 }
 
-int readAsm(std::string fileName){
+Program readAsm(std::string fileName){
     std::ifstream file(fileName);
 
     if(!file.is_open()){
         std::cerr << "Couldn't open file\n";
-        return 1;
+        return Program{}; // heres a grenade i pulled the pin for you :))
     }
 
     std::string line;
+    Program prog;
 
     while(std::getline(file, line)){
-//        std::cout << "Read line: " << line << "\n";
-        parseLine(line);
+        prog.sourceLines.push_back(parseLine(line));
     }
 
     std::cout << "generated symtable:\n";
     for(const auto& [sym, addr] : symtab){
-        std::cout << sym << " : " << addr << "\n";
+        std::cout << sym << " : 0x" << std::hex << std::uppercase << addr << std::dec << "\n";
     }
 
     file.close();
-    return 0;
+    return prog;
 }
