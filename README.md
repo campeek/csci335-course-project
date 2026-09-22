@@ -6,7 +6,7 @@
 ```bash
 sudo apt install cmake build-essential libncurses-dev
 ```
-or whatever flavor of package manager your distro likes
+or whatever flavor of package manager your distro likes  
 if you're on windows, sorry for now :(
 
 ### building
