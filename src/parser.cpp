@@ -32,6 +32,7 @@ std::unordered_map<std::string, OpCode> optab = {
 };
 
 std::unordered_map<std::string, int> symtab = {};
+std::unordered_map<std::string, Literal> littab = {};
 
 int start_addr = 0;
 int cur_addr = 0;
@@ -63,6 +64,10 @@ SourceLine parseLine(std::string line) {
     thisLine.address = cur_addr;
     thisLine.label = label;
 
+    if(hasLabel){
+        symtab[label] = cur_addr;
+    }
+
     if(mnem == "START"){
         if(start_addr == 0){
             start_addr = std::stoi(operand, nullptr, 16);
@@ -84,8 +89,9 @@ SourceLine parseLine(std::string line) {
         // :(
     } else if(mnem == "END"){ // just store the operand for pass 2 to deal with
         thisLine.operand = operand;
-    }
-    else {
+    } else if(mnem == "EQU"){ // constant def - add to symtab
+        // wait, wouldn't it already be there? since it has a label??
+    } else {
 
         // check for leading + for format 4
         bool extended = !mnem.empty() && mnem[0] == '+';
@@ -101,10 +107,6 @@ SourceLine parseLine(std::string line) {
         thisLine.operand = operand;
         thisLine.mnemonic = mnem;
         thisLine.opcode = opcode;
-
-        if(hasLabel){
-            symtab[label] = cur_addr;
-        }
 
         int format = opcode.format;
         if(extended) format++; // format 4 takes 4 bytes
