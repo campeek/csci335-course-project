@@ -8,6 +8,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 
 std::vector<SourceLine> lines;
 
@@ -27,6 +28,7 @@ std::unordered_map<std::string, OpCode> optab = {
     {"CLEAR",   {0xB4, 2}},
     {"TIXR",    {0xB8, 2}},
     {"ADDR",    {0x90, 2}},
+    {"FIX",     {0xC4, 1}},
 };
 
 std::unordered_map<std::string, int> symtab = {};
@@ -36,6 +38,7 @@ int cur_addr = 0;
 
 SourceLine parseLine(std::string line) {
 
+    // if line doesn't have a label, it has to start with a space
     bool hasLabel = !line.empty() && !std::isspace(static_cast<unsigned char>(line[0]));
     std::istringstream iss(line);
 
@@ -47,10 +50,7 @@ SourceLine parseLine(std::string line) {
     int addr;
     OpCode opcode;
 
-    uint8_t instruction_length = 3; //TODO: hardcoded 3 to test. actual length varies.
-
-
-
+    // grab label if it exists
     if(hasLabel) {
         iss >> label >> mnem;
     } else {
@@ -59,8 +59,10 @@ SourceLine parseLine(std::string line) {
 
     iss >> operand;
 
+    thisLine.raw = line;
+    thisLine.address = cur_addr;
+    thisLine.label = label;
 
-    //TODO: deal with other directives
     if(mnem == "START"){
         if(start_addr == 0){
             start_addr = std::stoi(operand, nullptr, 16);
@@ -68,9 +70,31 @@ SourceLine parseLine(std::string line) {
         } else {
             //TODO: handle error here
         }
-    } else {
-        opcode = optab[mnem];
+    } else if (mnem == "WORD"){ // word literal - 3 bytes 
+        cur_addr += 3;
+    } else if(mnem == "RESW"){ // reserve word - 3 bytes * operand (num words) 
+        cur_addr += 3*std::stoi(operand, nullptr, 16);
+    } else if(mnem == "RESB"){ // reserve byte - operand
+        cur_addr += std::stoi(operand);
+    } else if(mnem == "BYTE"){ // byte literal  - however long op is, but in bytes
+        cur_addr += byteLength(operand);
+    } else if(mnem == "BASE"){ // tell assembler what's in B reg, useless to us rn
+        // :)
+    } else if(mnem == "NOBASE"){ // stop using base addressing, also useless rn
+        // :(
+    } else if(mnem == "END"){ // just store the operand for pass 2 to deal with
+        thisLine.operand = operand;
+    }
+    else {
 
+        // check for leading + for format 4
+        bool extended = !mnem.empty() && mnem[0] == '+';
+        if(extended) mnem.erase(0,1); // cut off the + cuz it'll mess up the lookup
+
+        // grab opcode from map
+        opcode = optab.at(mnem);
+
+        // generate SourceLine struct
         thisLine.raw = line;
         thisLine.address = cur_addr;
         thisLine.label = label;
@@ -82,19 +106,23 @@ SourceLine parseLine(std::string line) {
             symtab[label] = cur_addr;
         }
 
-        cur_addr += instruction_length;
+        int format = opcode.format;
+        if(extended) format++; // format 4 takes 4 bytes
+        
+        // thrugh incredible provenance, the format number is also the length of the instruction.
+        cur_addr += format;
     }
 
 
 
-    std::cout << "parsed line -> |";
+    std::cout << "parsed line -> ";
     if(hasLabel) {
         std::cout << "label: " << label;
     } else {
         std::cout << "label:    ";
     }
 
-    std::cout << " mnem: " << mnem << " operand: " << operand << " opcode: " << opcode << "\n";
+    std::cout << " mnem: " << mnem << " operand: " << operand << " opcode: " << opcode << " address: 0x" << std::hex << std::uppercase << thisLine.address << std::dec << "\n";
     return thisLine; 
 }
 
@@ -120,4 +148,29 @@ Program readAsm(std::string fileName){
 
     file.close();
     return prog;
+}
+
+int byteLength(std::string op){
+    // BYTE reserves a byte literal
+    // we need to know what kind and how big it is
+
+    // pull type from first char of string
+    // ditch the ' and return what's left for byte size
+    char type = op[0];
+    if(type == 'C'){
+        return op.length() - 3;
+    } else if (type == 'X'){
+        // each pair of hex digits is 1 byte
+        // X can't be half byte. validate.
+        int bytes = op.length() - 3;
+        if(bytes % 2 == 0){
+            return (op.length() - 3) / 2;
+        } else {
+            //TODO: start flipping the fuck out
+            return 0;
+        }
+    } else {
+        //TODO: error handling
+        return 0;
+    }
 }

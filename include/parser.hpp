@@ -16,6 +16,7 @@
 extern std::unordered_map<std::string, OpCode> optab;
 extern std::unordered_map<std::string, int> symtab;
 
+int byteLength(std::string op);
 SourceLine parseLine(std::string line);
 
 Program readAsm(std::string fileName);
