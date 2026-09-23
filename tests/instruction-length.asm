@@ -1,0 +1,14 @@
+TEST    START   1000
+FIRST   FIX
+        CLEAR   X
+        ADDR    A,X
+        LDA     VALUE
+        STA     RESULT
+        +JSUB   SUBRTN
+VALUE   WORD    42
+RESULT  RESW    1
+BUFFER  RESB    10
+CHAR    BYTE    C'HELLO'
+HEXVAL  BYTE    X'F1A2'
+SUBRTN  RSUB
+        END     FIRST
