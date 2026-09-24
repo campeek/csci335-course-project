@@ -13,9 +13,4 @@ struct Literal {
     uint8_t value;
 };
 
-bool hasAddress(Literal* literal){
-    if (literal -> address != nullptr){
-        return true;
-    }
-    return false;
-}
+bool hasAddress(Literal* literal);

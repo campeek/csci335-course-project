@@ -6,6 +6,7 @@
 
 #include "parser.hpp"
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -96,6 +97,16 @@ SourceLine parseLine(std::string line) {
         // check for leading + for format 4
         bool extended = !mnem.empty() && mnem[0] == '+';
         if(extended) mnem.erase(0,1); // cut off the + cuz it'll mess up the lookup
+        
+        bool literal = !operand.empty() && operand[0] == '=';
+        if(literal){
+            if(hasLabel){
+                uint8_t value = std::stoi(operand.erase(0,1), nullptr, 16);
+                littab[label] = Literal(0x0, value);
+            } else {
+                // TODO: handle error
+            }
+        }
 
         // grab opcode from map
         opcode = optab.at(mnem);
