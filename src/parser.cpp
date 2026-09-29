@@ -92,7 +92,9 @@ SourceLine parseLine(std::string line) {
         thisLine.operand = operand;
     } else if(mnem == "EQU"){ // constant def - add to symtab
         // wait, wouldn't it already be there? since it has a label??
-    } else {
+    } else if(mnem == "LTORG"){
+        // TODO: assign addresses to literals
+    }else {
 
         // check for leading + for format 4
         bool extended = !mnem.empty() && mnem[0] == '+';
