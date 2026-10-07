@@ -16,11 +16,14 @@ std::vector<SourceLine> lines;
 std::unordered_map<std::string, OpCode> optab = {
     {"LDA",     {0x00, 3}},
     {"LDX",     {0x04, 3}},
+    {"LDS",     {0x6C, 3}},
+    {"LDT",     {0x74, 3}},
     {"STA",     {0x0C, 3}},
     {"STX",     {0x10, 3}},
     {"ADD",     {0x18, 3}},
     {"SUB",     {0x1C, 3}},
     {"COMP",    {0x28, 3}},
+    {"COMPR",   {0xA0, 2}},
     {"J",       {0x3C, 3}},
     {"JEQ",     {0x30, 3}},
     {"JLT",     {0x38, 3}},
@@ -54,12 +57,10 @@ SourceLine parseLine(std::string line) {
 
     // grab label if it exists
     if(hasLabel) {
-        iss >> label >> mnem;
+        iss >> label >> mnem >> operand;
     } else {
-        iss >> mnem;
+        iss >> mnem >> operand;
     }
-
-    iss >> operand;
 
     thisLine.raw = line;
     thisLine.address = cur_addr;
@@ -153,6 +154,9 @@ Program readAsm(std::string fileName){
     Program prog;
 
     while(std::getline(file, line)){
+        if(!line.empty() && line.back() == '\r'){
+            line.pop_back();
+        }
         prog.sourceLines.push_back(parseLine(line));
     }
 
