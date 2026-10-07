@@ -112,7 +112,12 @@ SourceLine parseLine(std::string line) {
         }
 
         // grab opcode from map
-        opcode = optab.at(mnem);
+        if(optab.contains(mnem)){
+            opcode = optab.at(mnem);
+        } else {
+            //TODO: handle error better
+            std::cout << "unknown instruction: " << mnem << "\n";
+        }
 
         // generate SourceLine struct
         thisLine.raw = line;
