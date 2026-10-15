@@ -6,9 +6,10 @@
 */
 
 #include <vector>
+#include <string>
 #include <unordered_map>
-#include "parser.hpp"
-
+#include "literal.hpp"
+#include "opcode.hpp"
 
 struct SourceLine{
 	int lineNumber;
@@ -26,9 +27,26 @@ struct SourceLine{
 	std::vector<int> objectCode;
 };
 
-struct Program{
-    std::vector<SourceLine> sourceLines;
+struct ProgramBlock {
+    std::string label;
+
+    int locctr = 0;
+    int startAddr = 0;
+
+    std::vector<SourceLine> lines;
+};
+
+struct ControlSection {
+    std::string label;
+    std::vector<ProgramBlock> blocks;
     std::unordered_map<std::string, int> symtab;
-    int programLength;
-    int startCtr;
+    std::unordered_map<std::string, Literal> littab;
+
+    int length = 0;
+    int currentBlock = 0;
+};
+
+struct Program{
+    std::vector<ControlSection> controlSections;
+    int activeSection = 0;
 };
