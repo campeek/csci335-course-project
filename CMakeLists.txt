@@ -10,6 +10,8 @@ find_package(Curses REQUIRED)
 add_executable(sicxe
 	src/main.cpp
     src/parser.cpp
+	src/literal.cpp
+
 )
 
 target_include_directories(sicxe PRIVATE

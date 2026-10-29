@@ -8,8 +8,9 @@
 
 #include <cstdint>
 #include <fstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <ranges>
 
 std::vector<SourceLine> lines;
 
@@ -75,7 +76,7 @@ SourceLine parseLine(std::string line) {
     thisLine.operand = operand;
 
     if(hasLabel){
-        symtab[label] = curBlock.locctr;
+        curSection.symtab[label] = curBlock.locctr;
     }
 
     if(mnem == "START"){
@@ -99,24 +100,23 @@ SourceLine parseLine(std::string line) {
         // :(
     } else if(mnem == "END"){ // just store the operand for pass 2 to deal with
         thisLine.operand = operand;
+        dumpLiterals(curProgram);
     } else if(mnem == "EQU"){ // constant def - add to symtab
         // wait, wouldn't it already be there? since it has a label??
     } else if(mnem == "LTORG"){
-        // TODO: assign addresses to literals
+        dumpLiterals(curProgram);
     }else {
-
         // check for leading + for format 4
         bool extended = !mnem.empty() && mnem[0] == '+';
         if(extended) mnem.erase(0,1); // cut off the + cuz it'll mess up the lookup
         
         bool literal = !operand.empty() && operand[0] == '=';
         if(literal){
-            if(hasLabel){
-                uint8_t value = std::stoi(operand.erase(0,1), nullptr, 16);
-                littab[label] = Literal(0x0, value);
-            } else {
-                // TODO: handle error
-            }
+            auto newLit = Literal{0, 0, 0};
+            newLit.length  = byteLength(operand);
+            parseLiteral(newLit, operand);
+            curSection.littab[operand] = newLit;
+
         }
 
         // grab opcode from map
@@ -198,5 +198,26 @@ int byteLength(std::string op){
     } else {
         //TODO: error handling
         return 0;
+    }
+}
+
+void parseLiteral(Literal& lit, const std::string operand) {
+    if (operand[1] == '\'') {
+        if (operand[-1] == '\'') {
+            std::string strValue = operand.substr(3, operand.length()-1);
+            lit.value = stoi(strValue);
+        }
+    }
+}
+
+void dumpLiterals(Program &program) {
+    ControlSection& curSection = program.controlSections.at(program.activeSection);
+    ProgramBlock& curBlock = curSection.blocks.at(curSection.currentBlock);
+
+    for (auto &lit: curSection.littab | std::views::values) {
+        if(!hasAddress(&lit)) {
+            lit.address = curBlock.locctr;
+            curBlock.locctr += lit.length;
+        }
     }
 }
