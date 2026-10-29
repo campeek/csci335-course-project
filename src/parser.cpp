@@ -13,6 +13,8 @@
 
 std::vector<SourceLine> lines;
 
+Program curProgram;
+
 std::unordered_map<std::string, OpCode> optab = {
     {"LDA",     {0x00, 3}},
     {"LDX",     {0x04, 3}},
@@ -35,18 +37,17 @@ std::unordered_map<std::string, OpCode> optab = {
     {"FIX",     {0xC4, 1}},
 };
 
-std::unordered_map<std::string, int> symtab = {};
-std::unordered_map<std::string, Literal> littab = {};
-
-int start_addr = 0;
-int cur_addr = 0;
-
 SourceLine parseLine(std::string line) {
+
+    // all this function needs to care about is handling the incoming string
+    // it doesnt modify anything "directly"
 
     // if line doesn't have a label, it has to start with a space
     bool hasLabel = !line.empty() && !std::isspace(static_cast<unsigned char>(line[0]));
     std::istringstream iss(line);
 
+    // create a new SourceLine
+    // we'll figure out who it belongs to later
     SourceLine thisLine;
 
     std::string label;
@@ -62,29 +63,36 @@ SourceLine parseLine(std::string line) {
         iss >> mnem >> operand;
     }
 
+    // we need the current programblock we're working with
+    ControlSection& curSection = curProgram.controlSections.at(curProgram.activeSection);
+    ProgramBlock& curBlock = curSection.blocks.at(curSection.currentBlock);
+
+    // get the line's address from our current block's locctr
+    thisLine.address = curBlock.locctr;
     thisLine.raw = line;
-    thisLine.address = cur_addr;
     thisLine.label = label;
+    thisLine.mnemonic = mnem;
+    thisLine.operand = operand;
 
     if(hasLabel){
-        symtab[label] = cur_addr;
+        symtab[label] = curBlock.locctr;
     }
 
     if(mnem == "START"){
-        if(start_addr == 0){
-            start_addr = std::stoi(operand, nullptr, 16);
-            cur_addr = start_addr;
+        if(curBlock.startAddr == 0){
+            curBlock.startAddr = std::stoi(operand, nullptr, 16);
+            curBlock.locctr = curBlock.startAddr;
         } else {
             //TODO: handle error here
         }
     } else if (mnem == "WORD"){ // word literal - 3 bytes 
-        cur_addr += 3;
+        curBlock.locctr += 3;
     } else if(mnem == "RESW"){ // reserve word - 3 bytes * operand (num words) 
-        cur_addr += 3*std::stoi(operand, nullptr, 16);
+        curBlock.locctr += 3*std::stoi(operand, nullptr, 16);
     } else if(mnem == "RESB"){ // reserve byte - operand
-        cur_addr += std::stoi(operand);
+        curBlock.locctr += std::stoi(operand);
     } else if(mnem == "BYTE"){ // byte literal  - however long op is, but in bytes
-        cur_addr += byteLength(operand);
+        curBlock.locctr += byteLength(operand);
     } else if(mnem == "BASE"){ // tell assembler what's in B reg, useless to us rn
         // :)
     } else if(mnem == "NOBASE"){ // stop using base addressing, also useless rn
@@ -120,18 +128,13 @@ SourceLine parseLine(std::string line) {
         }
 
         // generate SourceLine struct
-        thisLine.raw = line;
-        thisLine.address = cur_addr;
-        thisLine.label = label;
-        thisLine.operand = operand;
-        thisLine.mnemonic = mnem;
         thisLine.opcode = opcode;
 
         int format = opcode.format;
         if(extended) format++; // format 4 takes 4 bytes
         
         // thrugh incredible provenance, the format number is also the length of the instruction.
-        cur_addr += format;
+        curBlock.locctr += format;
     }
 
 
@@ -156,13 +159,12 @@ Program readAsm(std::string fileName){
     }
 
     std::string line;
-    Program prog;
 
     while(std::getline(file, line)){
         if(!line.empty() && line.back() == '\r'){
             line.pop_back();
         }
-        prog.sourceLines.push_back(parseLine(line));
+        parseLine(line);
     }
 
     std::cout << "generated symtable:\n";
@@ -171,7 +173,7 @@ Program readAsm(std::string fileName){
     }
 
     file.close();
-    return prog;
+    return curProgram;
 }
 
 int byteLength(std::string op){
