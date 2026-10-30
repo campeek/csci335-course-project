@@ -6,9 +6,9 @@
 
 #include "literal.hpp"
 
-bool hasAddress(Literal* literal){
-    if(literal -> address == 0x0){
-        return true;
+bool hasAddress(Literal& literal){
+    if(literal.address == 0x0){
+        return false;
     }
-    return false;
+    return true;
 }

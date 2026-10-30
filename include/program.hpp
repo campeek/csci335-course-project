@@ -11,6 +11,8 @@
 #include "literal.hpp"
 #include "opcode.hpp"
 
+#include <map>
+
 struct SourceLine{
 	int lineNumber;
 
@@ -28,8 +30,6 @@ struct SourceLine{
 };
 
 struct ProgramBlock {
-    std::string label;
-
     int locctr = 0;
     int startAddr = 0;
 
@@ -37,16 +37,29 @@ struct ProgramBlock {
 };
 
 struct ControlSection {
-    std::string label;
-    std::vector<ProgramBlock> blocks;
+    std::map<std::string, ProgramBlock> blocks;
     std::unordered_map<std::string, int> symtab;
     std::unordered_map<std::string, Literal> littab;
 
     int length = 0;
-    int currentBlock = 0;
+    std::string currentBlock;
 };
 
 struct Program{
-    std::vector<ControlSection> controlSections;
-    int activeSection = 0;
+    std::map<std::string, ControlSection> controlSections;
+    std::string currentSection;
+
+    Program() {
+        // create a default section/block
+
+        // you could also do this in the constructors of the structs but
+        // this keeps everything in the same area.
+        currentSection = "DEFAULT";
+
+        ControlSection section{};
+        section.currentBlock = "DEFAULT";
+        section.blocks.emplace("DEFAULT", ProgramBlock{});
+
+        controlSections.emplace("DEFAULT", std::move(section));
+    }
 };

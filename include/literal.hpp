@@ -7,11 +7,12 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 struct Literal {
-    uint8_t address;
-    uint8_t value;
-    uint8_t length;
+    int address = 0x0;
+    std::string value;
+    int length;
 };
 
-bool hasAddress(Literal* literal);
+bool hasAddress(Literal& literal);

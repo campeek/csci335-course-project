@@ -21,6 +21,7 @@ std::unordered_map<std::string, OpCode> optab = {
     {"LDX",     {0x04, 3}},
     {"LDS",     {0x6C, 3}},
     {"LDT",     {0x74, 3}},
+    {"LDCH",    {0x50, 3}},
     {"STA",     {0x0C, 3}},
     {"STX",     {0x10, 3}},
     {"ADD",     {0x18, 3}},
@@ -65,8 +66,8 @@ SourceLine parseLine(std::string line) {
     }
 
     // we need the current programblock we're working with
-    ControlSection& curSection = curProgram.controlSections.at(curProgram.activeSection);
-    ProgramBlock& curBlock = curSection.blocks.at(curSection.currentBlock);
+    ControlSection& curSection = curProgram.controlSections[curProgram.currentSection];
+    ProgramBlock& curBlock = curSection.blocks[curSection.currentBlock];
 
     // get the line's address from our current block's locctr
     thisLine.address = curBlock.locctr;
@@ -112,11 +113,10 @@ SourceLine parseLine(std::string line) {
         
         bool literal = !operand.empty() && operand[0] == '=';
         if(literal){
-            auto newLit = Literal{0, 0, 0};
-            newLit.length  = byteLength(operand);
+            // TODO: check for duplicates here
+            auto newLit = Literal{};
             parseLiteral(newLit, operand);
             curSection.littab[operand] = newLit;
-
         }
 
         // grab opcode from map
@@ -167,8 +167,9 @@ Program readAsm(std::string fileName){
         parseLine(line);
     }
 
+    ControlSection& curSection = curProgram.controlSections[curProgram.currentSection];
     std::cout << "generated symtable:\n";
-    for(const auto& [sym, addr] : symtab){
+    for(const auto& [sym, addr] : curSection.symtab){
         std::cout << sym << " : 0x" << std::hex << std::uppercase << addr << std::dec << "\n";
     }
 
@@ -183,6 +184,8 @@ int byteLength(std::string op){
     // pull type from first char of string
     // ditch the ' and return what's left for byte size
     char type = op[0];
+
+    //std::cout << "finding length of " << op << "\n";
     if(type == 'C'){
         return op.length() - 3;
     } else if (type == 'X'){
@@ -200,24 +203,26 @@ int byteLength(std::string op){
         return 0;
     }
 }
-
-void parseLiteral(Literal& lit, const std::string operand) {
-    if (operand[1] == '\'') {
-        if (operand[-1] == '\'') {
-            std::string strValue = operand.substr(3, operand.length()-1);
-            lit.value = stoi(strValue);
+static void parseLiteral(Literal& lit, const std::string operand) {
+    if (operand[2] == '\'') {
+        if (operand.back() == '\'') {
+            lit.value = operand.substr(3, operand.length()-4);
+            lit.length = byteLength(operand.substr(1, operand.length()-1));
         }
     }
 }
 
 void dumpLiterals(Program &program) {
-    ControlSection& curSection = program.controlSections.at(program.activeSection);
-    ProgramBlock& curBlock = curSection.blocks.at(curSection.currentBlock);
+    ControlSection& curSection = program.controlSections[program.currentSection];
+    ProgramBlock& curBlock = curSection.blocks[curSection.currentBlock];
+
 
     for (auto &lit: curSection.littab | std::views::values) {
-        if(!hasAddress(&lit)) {
+        if(!hasAddress(lit)) {
             lit.address = curBlock.locctr;
             curBlock.locctr += lit.length;
+
+            std::cout << "emitted literal at addr: " << lit.address << " with len: " << lit.length << "\n";
         }
     }
 }

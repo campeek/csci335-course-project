@@ -23,5 +23,5 @@ SourceLine parseLine(std::string line);
 
 Program readAsm(std::string fileName);
 
-void parseLiteral(Literal& lit, const std::string &operand);
+static void parseLiteral(Literal& lit, std::string operand);
 void dumpLiterals(Program& program);
